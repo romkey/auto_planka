@@ -1,0 +1,14 @@
+services:
+  auto_planka:
+    build: .
+    container_name: auto_planka
+    restart: unless-stopped
+    volumes:
+      - ./app:/app
+      - ./config:/config
+    environment:
+      - POSTGRESQL=${POSTGRESQL}
+networks:
+  default:
+    name: postgres-net
+    external: true
