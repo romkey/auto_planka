@@ -15,13 +15,11 @@ def _get_public_board_ids(config, db)
 end
 
 # make_board_public by adding all users to a board
-def make_projects_public(config, db, timestamp)
+def make_projects_public(config, db, timestamp, public_board_ids)
   users = db.exec("SELECT * FROM user_account")
 
   config[:public_project_ids].each do |project_id|
-    boards_query = db.exec("SELECT * FROM board WHERE project_id = #{project_id}")
-    boards_query.each do |board|
-      board_id = board['id']
+    public_board_ids.each do |board_id|
       users.each do |user|
         user_id = user['id']
         db.exec("INSERT INTO board_membership VALUES (next_id(), '#{board_id}', '#{user_id}', '#{timestamp}', NULL, 'editor', NULL) ON CONFLICT DO NOTHING");
@@ -68,7 +66,7 @@ loop do
 
   public_board_ids = _get_public_board_ids(config, db)
 
-  make_projects_public(config, db, timestamp)
+  make_projects_public(config, db, timestamp, public_board_ids)
   puts 'made projects public'
 
   make_admins_public_project_managers(config, db, timestamp)
