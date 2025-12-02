@@ -11,6 +11,14 @@ services:
       - ./config:/config
     environment:
       - POSTGRESQL=${POSTGRESQL}
+      # Path to config file (default: config.json)
+      - CONFIG_PATH=/config/config.json
+      # Seconds between sync runs (default: 60)
+      - SLEEP_INTERVAL=${SLEEP_INTERVAL:-60}
+      # Role for board membership: editor or viewer (default: editor)
+      - DEFAULT_ROLE=${DEFAULT_ROLE:-editor}
+      # Log level: DEBUG, INFO, WARN, ERROR, FATAL (default: INFO)
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     env_file:
       - .env
     labels:
