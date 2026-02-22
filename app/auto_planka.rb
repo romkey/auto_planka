@@ -167,6 +167,78 @@ rescue PG::Error => e
   raise
 end
 
+REQUIRED_TABLES = %w[
+  board
+  board_membership
+  user_account
+  label
+  project
+  project_manager
+].freeze
+
+def validate_database_schema(db)
+  LOGGER.info('Validating database schema...')
+
+  # Check for required tables
+  result = db.exec(
+    "SELECT table_name FROM information_schema.tables " \
+    "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"
+  )
+  existing_tables = result.map { |row| row['table_name'] }
+
+  missing_tables = REQUIRED_TABLES - existing_tables
+  unless missing_tables.empty?
+    LOGGER.fatal("Missing required tables: #{missing_tables.join(', ')}")
+    LOGGER.fatal('This does not appear to be a valid Planka database')
+    exit(1)
+  end
+
+  LOGGER.info('All required tables present')
+
+  # Check for Planka version compatibility
+  check_planka_version(db, existing_tables)
+
+  true
+end
+
+def check_planka_version(db, existing_tables)
+  # Planka v2 introduced significant schema changes. We can detect v2+ by:
+  # 1. Checking for tables that only exist in v2 (e.g., 'custom_field', 'custom_field_value', 'custom_field_group')
+  # 2. Checking migration table for v2 migrations
+  # 3. Checking for column changes in existing tables
+
+  v2_only_tables = %w[custom_field custom_field_value custom_field_group base_custom_field_group]
+  v2_tables_present = v2_only_tables & existing_tables
+
+  unless v2_tables_present.empty?
+    LOGGER.fatal("Detected Planka v2+ schema (found tables: #{v2_tables_present.join(', ')})")
+    LOGGER.fatal('This script is designed for Planka v1.x and may not work correctly with v2+')
+    LOGGER.fatal('Set SKIP_VERSION_CHECK=1 to bypass this check (use at your own risk)')
+    exit(1) unless ENV['SKIP_VERSION_CHECK'] == '1'
+    LOGGER.warn('Version check bypassed - proceeding with caution')
+    return
+  end
+
+  # Check migration table for version hints
+  begin
+    result = db.exec('SELECT name FROM migration ORDER BY id DESC LIMIT 10')
+    migrations = result.map { |row| row['name'] }
+
+    # Look for v2 migration patterns (these typically have different naming)
+    v2_migration_patterns = migrations.select { |m| m.match?(/^20[2-9][4-9]/) }
+    if v2_migration_patterns.any?
+      latest_year = v2_migration_patterns.first[0..3].to_i
+      if latest_year >= 2024
+        LOGGER.warn("Recent migrations detected (#{latest_year}), verify Planka version compatibility")
+      end
+    end
+  rescue PG::Error => e
+    LOGGER.debug("Could not check migrations: #{e.message}")
+  end
+
+  LOGGER.info('Database schema appears compatible with Planka v1.x')
+end
+
 def main
   config = load_config
 
@@ -184,11 +256,17 @@ def main
   db = nil
   retry_count = 0
   max_retries = 5
+  schema_validated = false
 
   while running
     begin
       db ||= connect_database
       retry_count = 0
+
+      unless schema_validated
+        validate_database_schema(db)
+        schema_validated = true
+      end
 
       auto_planka = AutoPlanka.new(config, db)
       auto_planka.run_once
@@ -201,6 +279,7 @@ def main
 
       db&.close
       db = nil
+      schema_validated = false
 
       if retry_count >= max_retries
         LOGGER.fatal('Max retries exceeded, exiting')

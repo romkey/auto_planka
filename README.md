@@ -14,6 +14,18 @@ private projects, some will be "public" - accessible to all members.
 This script takes a simple JSON file that lists the IDs of public projects and periodically adds all users to the boards.
 This works for our use case; we have few enough users that the overhead is low for us.
 
+## Compatibility
+
+**This script is designed for Planka v1.x only.**
+
+On startup, the script validates:
+- All required database tables are present (`board`, `board_membership`, `user_account`, `label`, `project`, `project_manager`)
+- The database schema does not contain Planka v2+ tables (e.g., `custom_field`, `custom_field_value`)
+
+If Planka v2+ is detected, the script will exit with an error. The schema changes in v2 may make this script incompatible or cause unexpected behavior.
+
+To bypass the version check (not recommended), set `SKIP_VERSION_CHECK=1`.
+
 ## Configuration
 
 ### Environment Variables
@@ -25,6 +37,7 @@ This works for our use case; we have few enough users that the overhead is low f
 | `SLEEP_INTERVAL` | No | `60` | Seconds between sync runs |
 | `DEFAULT_ROLE` | No | `editor` | Role assigned to users on public boards (`editor` or `viewer`) |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`) |
+| `SKIP_VERSION_CHECK` | No | - | Set to `1` to bypass Planka version compatibility check (use at your own risk) |
 
 ### Config File
 
