@@ -1,0 +1,8 @@
+.git
+.github
+.env
+app/spec
+app/.rspec
+app/.rubocop.yml
+config
+*.md

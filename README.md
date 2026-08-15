@@ -1,5 +1,11 @@
 # auto_planka
 
+[![CI](https://github.com/romkey/auto_planka/actions/workflows/ci.yml/badge.svg)](https://github.com/romkey/auto_planka/actions/workflows/ci.yml)
+[![Lint](https://github.com/romkey/auto_planka/actions/workflows/lint.yml/badge.svg)](https://github.com/romkey/auto_planka/actions/workflows/lint.yml)
+[![Docker](https://github.com/romkey/auto_planka/actions/workflows/docker-build.yml/badge.svg)](https://github.com/romkey/auto_planka/actions/workflows/docker-build.yml)
+[![Ruby](https://img.shields.io/badge/ruby-4.0-CC342D?logo=ruby&logoColor=white)](app/Gemfile)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](MIT-LICENSE.txt)
+
 The auto_planka script makes a few changes to the Planka database to better suit its use at PDX Hackerspace.
 
 Planka doesn't currently support "public" boards or projects though this appears to be on its roadmap.
@@ -36,6 +42,7 @@ To bypass the version check (not recommended), set `SKIP_VERSION_CHECK=1`.
 | `CONFIG_PATH` | No | `config.json` | Path to the JSON configuration file |
 | `SLEEP_INTERVAL` | No | `60` | Seconds between sync runs |
 | `DEFAULT_ROLE` | No | `editor` | Role assigned to users on public boards (`editor` or `viewer`) |
+| `MAX_RETRIES` | No | `5` | Consecutive database failures tolerated before exiting |
 | `LOG_LEVEL` | No | `INFO` | Logging verbosity (`DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`) |
 | `SKIP_VERSION_CHECK` | No | - | Set to `1` to bypass Planka version compatibility check (use at your own risk) |
 
@@ -112,7 +119,49 @@ services:
 
 ## Development
 
-For development, uncomment the `dockerfile: Dockerfile.dev` line in `docker-compose.yml` and run:
+### Layout
+
+```
+app/
+  auto_planka.rb              entry point
+  lib/auto_planka/
+    config.rb                 environment and config.json parsing
+    schema_validator.rb       Planka v1 schema and version checks
+    syncer.rb                 one synchronisation pass
+    runner.rb                 loop, reconnect, graceful shutdown
+  spec/                       RSpec suite
+```
+
+### Running the tests
+
+The suite needs a scratch PostgreSQL database. Every example drops and recreates
+the `public` schema, so never point it at a real Planka install. Specs tagged
+`:database` are skipped if no database is reachable.
+
+```bash
+docker run -d --name auto_planka_pg -p 5432:5432 \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=auto_planka_test postgres:16-alpine
+
+cd app
+bundle install
+bundle exec rspec
+```
+
+Override the connection string with `TEST_DATABASE_URL` if needed; it defaults to
+`postgres://postgres:postgres@localhost:5432/auto_planka_test`.
+
+### Linting
+
+```bash
+cd app
+bundle exec rubocop
+```
+
+### Working inside the container
+
+Uncomment the `dockerfile: Dockerfile.dev` line in `docker-compose.yml`, uncomment
+the `./app:/app` volume, and run:
 
 ```bash
 docker compose run auto_planka /bin/sh

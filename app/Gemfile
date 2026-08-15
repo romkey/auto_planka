@@ -1,4 +1,17 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
-gem 'pg', '~> 1.5'
-gem 'dotenv', '~> 3.0'
+ruby '>= 4.0'
+
+gem 'dotenv', '~> 3.2'
+gem 'pg', '~> 1.6'
+
+# No longer a default gem as of Ruby 4.0
+gem 'logger', '~> 1.7'
+
+group :development, :test do
+  gem 'rspec', '~> 3.13'
+  gem 'rubocop', '~> 1.89', require: false
+  gem 'rubocop-rspec', '~> 3.10', require: false
+end

@@ -1,0 +1,46 @@
+plugins:
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+
+Layout/LineLength:
+  Max: 120
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+
+# The bulk INSERT builders read better as one method than split in half.
+Metrics/MethodLength:
+  Max: 15
+  Exclude:
+    - 'spec/**/*'
+
+# Keyword arguments do not suffer from the ordering problems this cop targets.
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+Style/Documentation:
+  Exclude:
+    - 'spec/**/*'
+
+# The executable is a script, not a library file.
+Naming/FileName:
+  Exclude:
+    - 'auto_planka.rb'
+
+RSpec/ExampleLength:
+  Max: 15
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 10
+
+RSpec/NestedGroups:
+  Max: 4

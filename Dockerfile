@@ -1,4 +1,4 @@
-FROM ruby:alpine
+FROM ruby:4.0-alpine
 
 # throw errors if Gemfile has been modified since Gemfile.lock
 # RUN bundle config --global frozen 1
@@ -12,9 +12,12 @@ RUN apk add --update --no-cache \
     tzdata \
     file
 
-COPY ./app/Gemfile ./app/Gemfile.lock .
-RUN bundle install
+COPY ./app/Gemfile ./app/Gemfile.lock ./
+RUN bundle config set --local without 'development test' \
+    && bundle config set --local frozen true \
+    && bundle install
 
 COPY ./app .
 
-ENTRYPOINT bundle exec ./auto_planka.rb
+# exec form so SIGTERM reaches Ruby directly for graceful shutdown
+ENTRYPOINT ["bundle", "exec", "./auto_planka.rb"]

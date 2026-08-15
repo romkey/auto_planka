@@ -7,7 +7,9 @@ services:
     container_name: auto_planka
     restart: unless-stopped
     volumes:
-      - ./app:/app
+      # Only mount ./app for development - it shadows the code baked into the
+      # image, so the container will fail to start if ./app is missing or empty
+#      - ./app:/app
       - ./config:/config
     environment:
       - POSTGRESQL=${POSTGRESQL}
